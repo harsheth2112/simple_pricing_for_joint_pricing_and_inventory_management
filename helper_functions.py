@@ -1,6 +1,5 @@
 import numpy as np
 from instance import Backlog, LostSales
-from demand import LinearDemand, ExponentialDemand
 from policy import Result
 
 
@@ -156,6 +155,9 @@ def optimal_static_profit_fixed_S(instance, demand, s):
     return static_profit_comp(instance, demand, optimal_static_rate_fixed_S(instance, demand, s), s)
 
 
+from demand import LinearDemand, ExponentialDemand
+
+
 def optimal_static_rate_fixed_S(instance, demand, s):
     a = demand.a
     b = demand.b
@@ -163,7 +165,7 @@ def optimal_static_rate_fixed_S(instance, demand, s):
     if s == 0:
         return 0
     if isinstance(demand, LinearDemand):
-        return a / 2 - a * b * K / 2 / s
+        return max(0, a / 2 - a * b * K / 2 / s)
     elif isinstance(demand, ExponentialDemand):
         return a * np.exp(-1 - b * K / s)
     else:
@@ -188,7 +190,7 @@ def optimal_static_policy(instance, demand, threshold=1e-7):
         # print(i, static_profit_comp(instance, demand, l, S), l, S)
     c = optimal_static_profit_fixed_S(instance, demand, np.ceil(S))
     f = optimal_static_profit_fixed_S(instance, demand, np.floor(S))
-    if p_0 < 0:
+    if max(c, f) < 0:
         return 0, 0
     elif c > f:
         return optimal_static_rate_fixed_S(instance, demand, int(np.ceil(S))), int(np.ceil(S))
