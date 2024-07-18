@@ -217,7 +217,7 @@ class ZeroLeadTimePolicy(Policy):
     def relative_value_iteration(self, max_iters=300000, threshold=1e-5, debug=False, init=None) -> Tuple[
             float, np.ndarray, np.ndarray]:
         fixed_cost = self.instance.fixed_cost
-        a = self.demand.arrival_rate(self.demand.min_price)
+        a = self.demand.a
         if init is None:
             J = np.zeros(self.state_space.max_shape)
         else:
@@ -231,8 +231,8 @@ class ZeroLeadTimePolicy(Policy):
         for _ in range(max_iters):
             for i, state in self.state_space.states():
                 best_prices_new[i] = self.demand.dp_price_solve(
-                    J[i] / a,
-                    J[i - 1] / a + fixed_cost * (state == self.state_space.s + 1)
+                    J[i],
+                    J[i - 1] + fixed_cost * (state == self.state_space.s + 1)
                 )
                 transition_prob = self.demand.arrival_rate(best_prices_new[i]) / a
                 J_new[i] = (self.instance.holding(state) / a
@@ -247,7 +247,7 @@ class ZeroLeadTimePolicy(Policy):
                 best_prices = np.copy(best_prices_new)
             J = np.copy(J_new) - J[0]
 
-        return -J[0], best_prices_new, J
+        return -a*J[0], best_prices_new, J
 
     def optimal_rates(self, profit):
         # assert demand_type in ["lin", "exp"]

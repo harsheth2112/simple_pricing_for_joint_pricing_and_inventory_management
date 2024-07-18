@@ -39,11 +39,14 @@ class PoissonDemand:
     def max_profit(self):
         return 0
 
-    def _dp_opt_price(self, delta):
+    def _dp_opt_rate(self, delta):
+        """
+        Solution to the convex problem: lambda^* = argmax_lambda lambda * (p(lambda) - delta)
+        """
         return 0
 
     def dp_price_solve(self, curr_state, next_state):
-        opt_price = self._dp_opt_price(next_state - curr_state)
+        opt_price = self.price(self._dp_opt_rate(next_state - curr_state))
         if self.min_price <= opt_price <= self.max_price:
             return opt_price
         else:
@@ -111,8 +114,8 @@ class LinearDemand(PoissonDemand):
     def max_profit(self):
         return self.a / self.b / 4
 
-    def _dp_opt_price(self, delta):
-        return 1 / self.b / 2 + delta / 2
+    def _dp_opt_rate(self, delta):
+        return self.a / 2 * (1 - self.b * delta)
 
     def opt_price(self, profit, holding):
         return (1 - np.sqrt(self.b * (holding + profit) / self.a)) / self.b
@@ -160,8 +163,8 @@ class ExponentialDemand(PoissonDemand):
     def max_profit(self):
         return self.a / self.b / np.exp(1)
 
-    def _dp_opt_price(self, delta):
-        return 1 / self.b + delta
+    def _dp_opt_rate(self, delta):
+        return self.a * np.exp(-1 - self.b * delta)
 
     def opt_price(self, profit, holding):
         return 1 / self.b * np.log(self.a / (self.b * (holding + profit)))
