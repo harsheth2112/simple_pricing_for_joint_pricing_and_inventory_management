@@ -1,7 +1,7 @@
 import numpy as np
 from utils import vectorize
 from instance import Backlog, LostSales
-from helper_functions import g
+from utils import g
 
 
 class PoissonDemand:
@@ -66,7 +66,7 @@ class PoissonDemand:
         return 1 / np.sum(1 / arrival_rates)
 
     @vectorize
-    def opt_rate(self, profit, holding):
+    def opt_rate_given_profit(self, profit, holding):
         pass
 
     def h(self, S, profit):
@@ -118,7 +118,7 @@ class LinearDemand(PoissonDemand):
         return (1 - np.sqrt(self.b * (holding + profit) / self.a)) / self.b
 
     @vectorize
-    def opt_rate(self, profit, holding):
+    def opt_rate_given_profit(self, profit, holding):
         return np.sqrt(self.a * self.b * (holding + profit))
 
     def optimal_s(self, instance, profit):
@@ -167,7 +167,7 @@ class ExponentialDemand(PoissonDemand):
         return 1 / self.b * np.log(self.a / (self.b * (holding + profit)))
 
     @vectorize
-    def opt_rate(self, profit, holding):
+    def opt_rate_given_profit(self, profit, holding):
         return self.b * (holding + profit)
 
     def h(self, S, profit):

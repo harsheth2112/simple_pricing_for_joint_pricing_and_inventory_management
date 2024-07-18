@@ -229,14 +229,16 @@ class ZeroLeadTimePolicy(Policy):
         # history = []
 
         for _ in range(max_iters):
-            for ind, i in self.state_space.states():
-                best_prices_new[ind] = self.demand.dp_price_solve(J[ind] / a,
-                                                                  J[ind - 1] / a + fixed_cost * (
-                                                                          i == self.state_space.s + 1))
-                transition_prob = self.demand.arrival_rate(best_prices_new[ind]) / a
-                J_new[ind] = self.instance.holding(i) + transition_prob * (
-                        J[ind - 1] + a * fixed_cost * (i == self.state_space.s + 1) - a * best_prices_new[ind]) + (
-                                     1 - transition_prob) * J[ind]
+            for i, state in self.state_space.states():
+                best_prices_new[i] = self.demand.dp_price_solve(
+                    J[i] / a,
+                    J[i - 1] / a + fixed_cost * (state == self.state_space.s + 1)
+                )
+                transition_prob = self.demand.arrival_rate(best_prices_new[i]) / a
+                J_new[i] = (self.instance.holding(state) / a
+                            + transition_prob * (J[i - 1] + fixed_cost * (state - 1 == self.state_space.s)
+                                                 - best_prices_new[i])
+                            + (1 - transition_prob) * J[i])
             # history.append(np.copy(best_prices))
             if np.sum(np.abs(J_new - J[0] - J)) <= J.size * threshold:
                 # if np.sum(np.abs(best_prices_new - best_prices)) <= best_prices.size * threshold:
@@ -254,7 +256,7 @@ class ZeroLeadTimePolicy(Policy):
         s = self.state_space.s
         S = self.state_space.S
         states = np.arange(s + 1, S + 1)
-        rates = self.demand.opt_rate(profit, self.instance.holding(states))
+        rates = self.demand.opt_rate_given_profit(profit, self.instance.holding(states))
         # rates = [self.demand.opt_rate(profit, self.instance.holding(i)) for i in states]
         # if demand_type == "lin":
         #     rates = np.sqrt(a * b * (self.instance.holding(states) + profit))
@@ -265,7 +267,8 @@ class ZeroLeadTimePolicy(Policy):
         return rates
 
     def set_optimal_policy(self):
-        profit = zero.optimal_profit(self.demand, self.instance, self.state_space.s, self.state_space.S)
+        profit = zero.optimal_profit_given_inventory_policy(self.demand, self.instance, self.state_space.s,
+                                                            self.state_space.S)
         optimal_rates = self.optimal_rates(profit)
         self.rates = optimal_rates
 
@@ -465,7 +468,7 @@ class ErlangLeadTimePolicy(Policy):
             rates = np.zeros(r + Q + 1)
             for i in range(r + 1, r + Q + 1):
                 J[i] = J[i - 1] - zero.g(self.instance, self.demand, i, profit)
-                rates[i] = min(a, self.demand.opt_rate(profit, self.instance.holding(i)))
+                rates[i] = min(a, self.demand.opt_rate_given_profit(profit, self.instance.holding(i)))
             for i in range(r, 0, -1):
                 inside_sqrt = a * b * (self.instance.holding(i) + profit) + mu * a * b * (K + J[i + Q] - J[i])
                 if inside_sqrt < 0 and not updated:
