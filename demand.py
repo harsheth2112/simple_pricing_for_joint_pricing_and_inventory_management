@@ -36,6 +36,14 @@ class PoissonDemand:
         return 0
 
     @property
+    def min_rate(self):
+        return self.arrival_rate(self.max_price)
+
+    @property
+    def max_rate(self):
+        return self.arrival_rate(self.min_price)
+
+    @property
     def max_profit(self):
         return 0
 
@@ -43,7 +51,37 @@ class PoissonDemand:
         """
         Solution to the convex problem: lambda^* = argmax_lambda lambda * (p(lambda) - delta)
         """
-        return 0
+        FAKE_MAX = 1e6
+        THRESHOLD = 1e-3
+
+        def f(lamb):
+            return lamb * (self.price(lamb) - delta)
+
+        min_rate = self.min_rate
+        max_rate = self.max_rate
+        if max_rate == np.inf:
+            max_rate = FAKE_MAX
+        f_min = f(min_rate)
+        f_max = f(max_rate)
+        while max_rate - min_rate > THRESHOLD:
+            f_1 = f(2 * min_rate / 3 + max_rate / 3)
+            if f_min == f_1 == f_max:
+                return min_rate
+            f_2 = f(min_rate / 3 + 2 * max_rate / 3)
+            if f_min < f_1 > f_2:
+                max_rate = min_rate / 3 + 2 * max_rate / 3
+                f_max = f_2
+            elif f_1 < f_2 > f_max:
+                min_rate = 2 * min_rate / 3 + max_rate / 3
+                f_min = f_1
+            elif f_1 == f_2:
+                max_rate = min_rate / 3 + 2 * max_rate / 3
+                f_max = f_2
+                min_rate = 2 * min_rate / 3 + max_rate / 3
+                f_min = f_1
+            else:
+                raise ValueError('Something went wrong, are we sure the optimization is concave?')
+        return (max_rate + min_rate) / 2
 
     def dp_price_solve(self, curr_state, next_state):
         opt_price = self.price(self._dp_opt_rate(next_state - curr_state))
@@ -138,7 +176,8 @@ class LinearDemand(PoissonDemand):
 
     def pi(self, s, profit):
         super(LinearDemand, self).pi(s, profit)
-        if s == 0:
+        assert s <= 0
+        if s >= -1:
             return np.inf
         return self.a / 4 / (-s - 1) / self.b - profit / (-s - 1)
 

@@ -141,9 +141,9 @@ class ErlangLeadTime(InventorySpace):
                     transition_mat[i, i + self.Q] = phase_probs[i, 0]
                 for i in range(1, self.Q + self.r + 1):
                     transition_mat[i, i - 1] = 1 - phase_probs[i, 0]
-                transition_mat = np.c_[transition_mat - np.identity(self.Q + self.r + 1), np.ones((self.Q + self.r + 1, 1))]
+                transition_mat = np.c_[transition_mat - np.identity(self.Q + self.r + 1),
+                                       np.ones((self.Q + self.r + 1, 1))]
                 probs = np.linalg.inv(transition_mat @ transition_mat.T).T @ np.ones(self.shape) * (self.Q + self.k)
                 return probs
             else:
                 print("arrival probs unsolved for this case")
-

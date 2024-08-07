@@ -141,6 +141,24 @@ def optimal_profit_given_inventory_policy(demand, instance, s, S, threshold=1e-1
     return profit
 
 
+def optimal_pricing_policy_given_inventory_policy(demand, instance, s, S):
+    profit = optimal_profit_given_inventory_policy(demand, instance, s, S)
+    return optimal_pricing_policy_given_profit_and_inventory_policy(s, S, demand, instance, profit)
+
+
+def optimal_policy(demand, instance):
+    profit, inventory_policy = optimal_profit_and_inventory_policy(demand, instance)
+    s = None
+    S = None
+    if isinstance(instance, Backlog):
+        s, S = inventory_policy
+    elif isinstance(instance, LostSales):
+        s = 0
+        S = inventory_policy
+    rates = optimal_pricing_policy_given_profit_and_inventory_policy(s, S, demand, instance, profit)
+    return s, S, rates, profit
+
+
 # Our Static policy computations
 def static_policy_rate(rates):
     return 1 / np.mean(1 / rates)
@@ -175,7 +193,8 @@ def static_profit_given_rate_and_order_size(instance, demand, rate, S):
 
 def optimal_static_profit_given_order_size(instance, demand, S):
     assert isinstance(instance, LostSales)
-    return static_profit_given_rate_and_order_size(instance, demand, optimal_static_rate_given_order_size(instance, demand, S), S)
+    return static_profit_given_rate_and_order_size(instance, demand,
+                                                   optimal_static_rate_given_order_size(instance, demand, S), S)
 
 
 def optimal_static_rate_given_order_size(instance, demand, S):
@@ -221,20 +240,30 @@ def optimal_static_policy(instance, demand, threshold=1e-7):
 
 
 # Other Simply Policies
-def two_price_policy(s, S, rates):
+def leave_zero_out_policy_given_rates(s, S, rates):
     rates_new = np.r_[rates[:-s - 1], rates[-s:]]
     rate_nonzero = static_policy_rate(rates_new)
     rate_zero = rates[-s - 1]
     return np.array([rate_nonzero for _ in range(-s - 1)] + [rate_zero] + [rate_nonzero for _ in range(S)])
 
 
-def two_price_policy_2(s, S, rates):
+def leave_zero_out_policy(demand, instance):
+    s, S, rates, profit = optimal_policy(demand, instance)
+    return s, S, leave_zero_out_policy_given_rates(s, S, rates)
+
+
+def pos_neg_policy_given_rates(s, S, rates):
     rate_non_pos = static_policy_rate(rates[:-s])
     rate_pos = static_policy_rate(rates[-s:])
     return np.array([rate_non_pos for _ in range(-s)] + [rate_pos for _ in range(S)])
 
 
-def three_price_policy(s, S, rates):
+def pos_neg_policy(demand, instance):
+    s, S, rates, profit = optimal_policy(demand, instance)
+    return s, S, pos_neg_policy_given_rates(s, S, rates)
+
+
+def three_price_policy_given_rates(s, S, rates):
     rate_neg = static_policy_rate(rates[:-s - 1])
     rate_zero = rates[-s - 1]
     rate_pos = static_policy_rate(rates[-s:])
